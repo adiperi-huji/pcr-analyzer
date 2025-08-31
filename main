@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>בדיקת GitHub Pages</title>
+</head>
+<body>
+  <h1>זה עובד 🎉</h1>
+  <p>זה עמוד בדיקה. נחליף את התוכן כשנתחיל לכתוב את האלגוריתם.</p>
+
+  <input id="nums" placeholder="הכניסי מספרים מופרדים בפסיקים" />
+  <button onclick="analyze()">חשב ממוצע</button>
+  <div id="out"></div>
+
+  <script>
+    function analyze(){
+      const raw = document.getElementById('nums').value || '';
+      const nums = raw.split(/[,\s;]+/).map(Number).filter(Number.isFinite);
+      if(!nums.length){ document.getElementById('out').textContent = 'אין נתונים'; return; }
+      const mean = nums.reduce((a,b)=>a+b,0) / nums.length;
+      document.getElementById('out').textContent = 'ממוצע: ' + mean.toFixed(4);
+    }
+  </script>
+</body>
+</html>
