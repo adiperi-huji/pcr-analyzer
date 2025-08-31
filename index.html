@@ -80,6 +80,11 @@
     // threshold: זוגות עם הפרש גדול STRICTLY מהסף נחשבים "רחוקים". 0.50 עצמו לא מפעיל חריגה.
 
     function fmt2(x){ return Number(x).toFixed(2); }
+    function esc(s){
+  return String(s).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])
+  );
+}
 
     // Parse wells: שומר בדיוק את הטקסט כפי שהוזן. מפצל לפי שורה/רווח/פסיק/נקודה-פסיק.
     function parseWells(text){
