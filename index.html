@@ -3,24 +3,197 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>בדיקת GitHub Pages</title>
+  <title>Real‑Time PCR Triplet Outlier Checker</title>
+  <style>
+    :root{--bg:#0b1020;--panel:#121933;--ink:#eef4ff;--muted:#9ab0d1;--line:#2c3c6a;--accent:#7aa2ff;--ok:#17c086;--warn:#ffb020;--err:#ff6b6b}
+    html,body{height:100%}
+    body{margin:0;background:linear-gradient(180deg,#0b1020,#101835);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:var(--ink)}
+    .wrap{max-width:960px;margin-inline:auto;padding:24px}
+    h1{margin:0 0 6px;font-size:clamp(22px,3vw,34px)}
+    .sub{margin:0 0 16px;color:var(--muted)}
+    .card{background:linear-gradient(180deg,#121933,#0f1730);border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 36px rgba(0,0,0,.25);padding:16px}
+    label{font-weight:600}
+    textarea{width:100%;min-height:220px;background:#0f1730;border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:12px 14px;resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace}
+    .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    input[type="number"]{background:#0f1730;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:8px 10px;min-width:100px}
+    .btn{appearance:none;border:1px solid #3a54a0;background:#25356d;color:#e9f1ff;padding:10px 14px;border-radius:12px;font-weight:700;cursor:pointer;transition:all .15s ease}
+    .btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+    .btn.secondary{background:#17234b;border-color:var(--line)}
+    .out{background:#0e142b;border:1px solid var(--line);border-radius:12px;padding:12px;white-space:pre-wrap}
+    .muted{color:var(--muted)}
+    .status{font-size:14px}
+    .ok{color:var(--ok)}
+    .warn{color:var(--warn)}
+    .err{color:var(--err)}
+  </style>
 </head>
 <body>
-  <h1>זה עובד 🎉</h1>
-  <p>זה עמוד בדיקה. נחליף את התוכן כשנתחיל לכתוב את האלגוריתם.</p>
+  <div class="wrap">
+    <h1>בדיקת חריגות בשלישיות — Real‑Time PCR</h1>
+    <p class="sub">הדביקו <strong>שתי רשימות מלאות</strong> (Wells ו‑CQ). האלגוריתם מתקדם אוטומטית בשלשות לפי הסדר: 1–3, 4–6, 7–9… אין צורך לקבץ ידנית.</p>
 
-  <input id="nums" placeholder="הכניסי מספרים מופרדים בפסיקים" />
-  <button onclick="analyze()">חשב ממוצע</button>
-  <div id="out"></div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="row" style="justify-content:space-between">
+        <div class="row" style="gap:14px">
+          <label for="threshold">Threshold (ΔCQ &gt;):</label>
+          <input id="threshold" type="number" step="0.01" value="0.50" />
+        </div>
+        <div class="row">
+          <button class="btn" id="runBtn">Run</button>
+          <button class="btn secondary" id="clearBtn">נקה</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="gap:16px">
+      <div class="card" style="flex:1">
+        <label for="wellsInput">Wells (שורה לכל באר; למשל A01, A02, …) — הטקסט נשמר כפי שהוא ויוחזר בפלט:</label>
+        <textarea id="wellsInput" placeholder="A01\nA02\nA03\n...\nH12"></textarea>
+        <p class="muted" style="margin:8px 0 0">* אין נירמול—הערכים נשמרים כפי שהוזנו ומשמשים רק לזיהוי בפלט.</p>
+      </div>
+      <div class="card" style="flex:1">
+        <label for="cqsInput">CQ values (שורה לכל ערך; שתי ספרות אחרי הנקודה):</label>
+        <textarea id="cqsInput" placeholder="24.13\n24.62\n24.45\n...\n25.02"></textarea>
+        <p class="muted" style="margin:8px 0 0">* יש לפרסם באותו סדר כמו ה‑Wells.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="row" style="justify-content:space-between;align-items:flex-end">
+        <div>
+          <strong>Output</strong>
+          <div id="status" class="status muted"></div>
+        </div>
+        <div class="row">
+          <button class="btn secondary" id="copyBtn">Copy</button>
+        </div>
+      </div>
+      <pre id="out" class="out" style="margin-top:10px"></pre>
+    </div>
+  </div>
 
   <script>
-    function analyze(){
-      const raw = document.getElementById('nums').value || '';
-      const nums = raw.split(/[,\s;]+/).map(Number).filter(Number.isFinite);
-      if(!nums.length){ document.getElementById('out').textContent = 'אין נתונים'; return; }
-      const mean = nums.reduce((a,b)=>a+b,0) / nums.length;
-      document.getElementById('out').textContent = 'ממוצע: ' + mean.toFixed(4);
+    // ========================= Core Logic (integrated with simple UI) =========================
+    // הכל ב-JavaScript טהור (Vanilla JS) שרץ בדפדפן בתוך הדף הזה.
+    // threshold: זוגות עם הפרש גדול STRICTLY מהסף נחשבים "רחוקים". 0.50 עצמו לא מפעיל חריגה.
+
+    function fmt2(x){ return Number(x).toFixed(2); }
+
+    // Parse wells: שומר בדיוק את הטקסט כפי שהוזן. מפצל לפי שורה/רווח/פסיק/נקודה-פסיק.
+    function parseWells(text){
+      return (text||"")
+        .split(/[\n,;\s]+/)
+        .map(s=>s.trim())
+        .filter(Boolean);
     }
+
+    // Parse CQs: ממיר לטיפוס Number ומתעלם מטוקנים שאינם מספרים סופיים.
+    function parseCqs(text){
+      return (text||"")
+        .split(/[\n,;\s]+/)
+        .map(Number)
+        .filter(Number.isFinite);
+    }
+
+    // Outlier בתוך שלישייה: האלמנט שאינו שייך לזוג הקרוב ביותר (מרחק מינימלי).
+    function outlierIndex3(values){
+      if(values.length!==3) throw new Error("outlierIndex3 expects exactly 3 values");
+      const d01 = Math.abs(values[0]-values[1]);
+      const d12 = Math.abs(values[1]-values[2]);
+      const d02 = Math.abs(values[0]-values[2]);
+      const pairs=[
+        {pair:[0,1], d:d01},
+        {pair:[1,2], d:d12},
+        {pair:[0,2], d:d02}
+      ].sort((a,b)=>a.d-b.d);
+      const closestPair=pairs[0].pair; // הזוג הכי קרוב
+      const outlier=[0,1,2].find(i=>!closestPair.includes(i)); // מי שלא נמצא בזוג הזה
+      return { outlier, dists:{d01,d12,d02} };
+    }
+
+    // מימוש שני המקרים עבור שלישייה אחת
+    function analyzeTriplet(wells3, cqs3, threshold){
+      const {outlier, dists} = outlierIndex3(cqs3);
+      const allFar = (dists.d01>threshold && dists.d12>threshold && dists.d02>threshold); // מקרה 1
+      const anyFar = (dists.d01>threshold || dists.d12>threshold || dists.d02>threshold); // תנאי למקרה 2
+      const lines=[];
+      if(allFar){
+        lines.push(`Abnormal samples (found in wells ${wells3.join(',')})`);
+      }
+      if(anyFar){
+        const w=wells3[outlier];
+        const v=cqs3[outlier];
+        lines.push(`exclude well ${w} - abnormal value ${fmt2(v)}`);
+      }
+      return lines; // ריק => ללא חריגות
+    }
+
+    // מעבר על כל הרשימות בקפיצות של 3
+    function analyzeAll(wells, cqs, threshold){
+      if(wells.length!==cqs.length){
+        throw new Error(`Lengths differ: wells=${wells.length}, cqs=${cqs.length}`);
+      }
+      const lines=[];
+      for(let i=0;i<wells.length;i+=3){
+        const w=wells.slice(i,i+3);
+        const v=cqs.slice(i,i+3);
+        if(w.length<3){
+          lines.push(`(warning) last ${w.length} value(s) ignored (needs full triplets).`);
+          break;
+        }
+        lines.push(...analyzeTriplet(w,v,threshold));
+      }
+      return lines;
+    }
+
+    // ========================= UI Wiring =========================
+    const wellsEl=document.getElementById('wellsInput');
+    const cqsEl=document.getElementById('cqsInput');
+    const thrEl=document.getElementById('threshold');
+    const runBtn=document.getElementById('runBtn');
+    const clearBtn=document.getElementById('clearBtn');
+    const copyBtn=document.getElementById('copyBtn');
+    const outEl=document.getElementById('out');
+    const statusEl=document.getElementById('status');
+
+    function setStatus(msg, cls='muted'){
+      statusEl.className = `status ${cls}`;
+      statusEl.textContent = msg || '';
+    }
+
+    runBtn.addEventListener('click', ()=>{
+      const wells=parseWells(wellsEl.value);
+      const cqs=parseCqs(cqsEl.value);
+      const thr=parseFloat(thrEl.value)||0.5;
+
+      try{
+        const lines=analyzeAll(wells,cqs,thr);
+        outEl.textContent = lines.length ? lines.join('\n') : 'No abnormalities found.';
+        setStatus(`Processed ${Math.floor(wells.length/3)} triplet(s).`, 'ok');
+      }catch(err){
+        outEl.textContent = '';
+        setStatus('Error: '+err.message, 'err');
+      }
+    });
+
+    clearBtn.addEventListener('click', ()=>{
+      wellsEl.value='';
+      cqsEl.value='';
+      outEl.textContent='';
+      setStatus('');
+      thrEl.value='0.50';
+    });
+
+    copyBtn.addEventListener('click', async()=>{
+      const text=outEl.textContent||'';
+      try{
+        await navigator.clipboard.writeText(text);
+        setStatus('Copied output to clipboard.', 'ok');
+      }catch{
+        setStatus('Copy failed (clipboard blocked?).', 'warn');
+      }
+    });
   </script>
 </body>
 </html>
+
