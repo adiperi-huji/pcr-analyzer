@@ -29,7 +29,7 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>בדיקת חריגות בשלישיות - Real‑Time PCR</h1>
+    <h1>בדיקת חריגות בשלישיות — Real‑Time PCR</h1>
     <p class="sub">הדביקו <strong>שתי רשימות מלאות</strong> (Well ו‑Cq). האלגוריתם מתקדם אוטומטית בשלשות לפי הסדר: 1–3, 4–6, 7–9… אין צורך לקבץ ידנית.</p>
 
     <div class="card" style="margin-bottom:14px">
@@ -37,24 +37,24 @@
         <div class="row" style="gap:14px">
           <label for="threshold">Threshold (ΔCq &gt;):</label>
           <input id="threshold" type="number" step="0.01" value="0.50" />
-          <p class="muted" style="margin:8px 0 0">*ניתן לקבוע ערך סף למציאת ערכים חריגים.</p>
+          <p class="muted" style="margin:8px 0 0">* ניתן לשנות את ערך הסף למציאת ערכים חריגים.</p>
 
         </div>
         <div class="row">
           <button class="btn" id="runBtn">Run</button>
-          <button class="btn secondary" id="clearBtn">נקה</button>
+          <button class="btn secondary" id="clearBtn">restart</button>
         </div>
       </div>
     </div>
 
     <div class="row" style="gap:16px">
       <div class="card" style="flex:1">
-        <label for="wellsInput">Wells</label>
+        <label for="wellsInput">Wells (שורה לכל באר; למשל A01, A02, …) — הטקסט נשמר כפי שהוא ויוחזר בפלט:</label>
         <textarea id="wellsInput" placeholder="A01\nA02\nA03\n...\nH12"></textarea>
-        <p class="muted" style="margin:8px 0 0">* אין נירמול- הערכים נשמרים כפי שהוזנו ומשמשים רק לזיהוי בפלט.</p>
+        <p class="muted" style="margin:8px 0 0">* אין נירמול—הערכים נשמרים כפי שהוזנו ומשמשים רק לזיהוי בפלט.</p>
       </div>
       <div class="card" style="flex:1">
-        <label for="cqsInput">Cq values</label>
+        <label for="cqsInput">Cq values (שורה לכל ערך; שתי ספרות אחרי הנקודה):</label>
         <textarea id="cqsInput" placeholder="24.13\n24.62\n24.45\n...\n25.02"></textarea>
         <p class="muted" style="margin:8px 0 0">* יש להעתיק באותו סדר כמו ה‑Wells.</p>
       </div>
@@ -80,11 +80,6 @@
     // threshold: זוגות עם הפרש גדול STRICTLY מהסף נחשבים "רחוקים". 0.50 עצמו לא מפעיל חריגה.
 
     function fmt2(x){ return Number(x).toFixed(2); }
-    function esc(s){
-  return String(s).replace(/[&<>"']/g, c =>
-    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])
-  );
-}
 
     // Parse wells: שומר בדיוק את הטקסט כפי שהוזן. מפצל לפי שורה/רווח/פסיק/נקודה-פסיק.
     function parseWells(text){
@@ -174,26 +169,9 @@
       const thr=parseFloat(thrEl.value)||0.5;
 
       try{
-        const lines = analyzeAll(wells, cqs, thr);
-      // נספר כמה דגימות חריגות נמצאו (מספר שורות exclude)
-        const abnormalCount = lines.filter(l => l.startsWith('exclude well ')).length;
-    // מכינים שורת כותרת בראש ה-Output
-        const headerHtml = `<div><strong>Abnormal samples found: ${abnormalCount}</strong></div>`;
-    // ממפים כל שורת פלט ל-HTML, עם צביעה אדומה לשורת "Abnormal samples ..."
-        const htmlLines = lines.map(l => {
-          const safe = esc(l);
-            if (l.startsWith('Abnormal samples')) {
-              return `<div class="errline">${safe}</div>`;
-           }
-            return `<div>${safe}</div>`;
-});
-
-// מציגים את הכול כ-HTML (כולל השורה הראשונה של הסיכום)
-outEl.innerHTML = headerHtml + (htmlLines.length ? htmlLines.join('') : `<div>No abnormalities found.</div>`);
-
-// סטטוס כרגיל
-setStatus(`Processed ${Math.floor(wells.length/3)} triplet(s).`, 'ok');
-
+        const lines=analyzeAll(wells,cqs,thr);
+        outEl.textContent = lines.length ? lines.join('\n') : 'No abnormalities found.';
+        setStatus(`Processed ${Math.floor(wells.length/3)} triplet(s).`, 'ok');
       }catch(err){
         outEl.textContent = '';
         setStatus('Error: '+err.message, 'err');
@@ -220,4 +198,3 @@ setStatus(`Processed ${Math.floor(wells.length/3)} triplet(s).`, 'ok');
   </script>
 </body>
 </html>
-
