@@ -35,7 +35,7 @@
     <div class="card" style="margin-bottom:14px">
       <div class="row" style="justify-content:space-between">
         <div class="row" style="gap:14px">
-          <label for="threshold">Threshold (ΔCQ &gt;):</label>
+          <label for="threshold">Threshold (ΔCq &gt;):</label>
           <input id="threshold" type="number" step="0.01" value="0.50" />
           <p class="muted" style="margin:8px 0 0">*ניתן לקבוע ערך סף למציאת ערכים חריגים.</p>
 
@@ -54,7 +54,7 @@
         <p class="muted" style="margin:8px 0 0">* אין נירמול- הערכים נשמרים כפי שהוזנו ומשמשים רק לזיהוי בפלט.</p>
       </div>
       <div class="card" style="flex:1">
-        <label for="cqsInput">CQ values</label>
+        <label for="cqsInput">Cq values</label>
         <textarea id="cqsInput" placeholder="24.13\n24.62\n24.45\n...\n25.02"></textarea>
         <p class="muted" style="margin:8px 0 0">* יש להעתיק באותו סדר כמו ה‑Wells.</p>
       </div>
@@ -89,7 +89,7 @@
         .filter(Boolean);
     }
 
-    // Parse CQs: ממיר לטיפוס Number ומתעלם מטוקנים שאינם מספרים סופיים.
+    // Parse Cqs: ממיר לטיפוס Number ומתעלם מטוקנים שאינם מספרים סופיים.
     function parseCqs(text){
       return (text||"")
         .split(/[\n,;\s]+/)
